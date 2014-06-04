@@ -1,0 +1,293 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bayesflare.stats.thresholding &mdash; BayesFlare 1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:'../../../',
+        VERSION:'1',
+        COLLAPSE_INDEX:false,
+        FILE_SUFFIX:'.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+    <link rel="top" title="BayesFlare 1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="../../../index.html" class="icon icon-home"> BayesFlare</a>
+        <form class="wy-form" action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search docs" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix">
+        
+        
+            <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../intro.html">A Brief Introduction to pyFlare</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../scripts.html">Pre-made Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../scripts.html#pitkin-williams-et-al">Pitkin, Williams, et. al.</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../data.html">Data Handling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../data.html#module-bayesflare.data.data">Data Loader</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../models.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models.html#module-bayesflare.models.flare">The Flare Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models.html#module-bayesflare.models.transit">The Transit Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../stats.html">Statistical Operations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../stats.html#module-bayesflare.stats.thresholding">Automatic Thresholder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../noise.html">Noise Estimation and Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../finder.html">Flare Indentification</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc.html">Miscellaneous Functions</a></li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top">
+        <i data-toggle="wy-nav-top" class="icon icon-reorder"></i>
+        <a href="/">BayesFlare</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <ul class="wy-breadcrumbs">
+  <li><a href="../../../index.html">Docs</a> &raquo;</li>
+  <li><a href="">bayesflare.stats.thresholding</a></li>
+  
+</ul>
+<hr/>
+
+          
+  <h1>Source code for bayesflare.stats.thresholding</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">..misc</span> <span class="kn">import</span> <span class="n">mkdir</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">bayesflare</span> <span class="kn">as</span> <span class="nn">pf</span>
+
+<div class="viewcode-block" id="Thresholder"><a class="viewcode-back" href="../../../stats.html#bayesflare.stats.thresholding.Thresholder">[docs]</a><span class="k">class</span> <span class="nc">Thresholder</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to carry out the thresholding proceedure in an automated manner.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    B : ndarray</span>
+<span class="sd">       An array of log-odds ratios.</span>
+<span class="sd">    confidence : float, optional</span>
+<span class="sd">       The threshold confidence (percentage). Defaults to 0.999 (i.e. 99.9%).</span>
+
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">confidence</span><span class="o">=</span><span class="mf">0.999</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">B</span> <span class="o">=</span> <span class="n">B</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="o">=</span> <span class="n">confidence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folderpath</span> <span class="o">=</span> <span class="s">&#39;thresholding/&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">identity_string</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span> <span class="o">=</span> <span class="s">&#39;threshold/&#39;</span> <span class="o">+</span> <span class="n">B</span><span class="o">.</span><span class="n">identity_string</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate_threshold</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Thresholder.generate_threshold"><a class="viewcode-back" href="../../../stats.html#bayesflare.stats.thresholding.Thresholder.generate_threshold">[docs]</a>    <span class="k">def</span> <span class="nf">generate_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function generates a histogram to calculate the lnB values at a given confidence level.</span>
+<span class="sd">        The histogram is then stored in the ``threshold`` folder.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span> <span class="nn">pickle</span>
+        <span class="kn">import</span> <span class="nn">glob</span>
+        <span class="kn">import</span> <span class="nn">pylab</span> <span class="kn">as</span> <span class="nn">pl</span>
+
+        <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folderpath</span><span class="o">+</span><span class="s">&#39;/f*.pickle&#39;</span><span class="p">)</span>
+        <span class="n">filesp</span><span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folderpath</span><span class="o">+</span><span class="s">&#39;/p*.pickle&#39;</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span> 
+        <span class="n">datap</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1000</span> <span class="p">:</span>
+            <span class="k">print</span> <span class="s">&quot;[Note] The thresholding values must be calculated for this quarter, as they do not appear to exist. This can take several hours.&quot;</span>
+            <span class="n">repeats</span> <span class="o">=</span> <span class="mi">1000</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">lightcurve</span><span class="o">.</span><span class="n">dt</span><span class="p">()</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">lightcurve</span><span class="o">.</span><span class="n">cts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">B</span><span class="o">.</span><span class="n">lightcurve</span><span class="o">.</span><span class="n">cts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span>
+            <span class="n">cadence</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">lightcurve</span><span class="o">.</span><span class="n">cadence</span>
+            <span class="n">pf</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folderpath</span><span class="p">)</span>
+            <span class="n">hours</span>  <span class="o">=</span> <span class="mi">3600</span>
+            <span class="n">M</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">Flare</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">lightcurve</span><span class="o">.</span><span class="n">cts</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">M</span><span class="o">.</span><span class="n">set_taus_gauss</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">hours</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">M</span><span class="o">.</span><span class="n">set_taus_exp</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="n">hours</span><span class="p">,</span> <span class="mi">5</span><span class="o">*</span><span class="n">hours</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+            <span class="n">P</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">Transit</span><span class="p">(</span><span class="n">B</span><span class="o">.</span><span class="n">lightcurve</span><span class="o">.</span><span class="n">cts</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">P</span><span class="o">.</span><span class="n">set_tauf</span><span class="p">(</span><span class="mf">0.5</span><span class="o">*</span><span class="n">hours</span><span class="p">,</span> <span class="mi">6</span><span class="o">*</span><span class="n">hours</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">repeats</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)):</span>
+                <span class="k">print</span> <span class="s">&quot;[Note] Iteration &quot;</span><span class="p">,</span>  <span class="mi">1</span><span class="o">+</span><span class="n">i</span><span class="p">,</span> <span class="s">&quot; of &quot;</span><span class="p">,</span> <span class="n">repeats</span><span class="p">,</span> <span class="s">&quot;(&quot;</span><span class="p">,</span> <span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">))</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">repeats</span><span class="p">))</span><span class="o">*</span><span class="mi">100</span><span class="p">,</span><span class="s">&quot;</span><span class="si">% c</span><span class="s">ompleted)&quot;</span>
+                <span class="n">A</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">SimLightcurve</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">dt</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">,</span> <span class="n">cadence</span><span class="o">=</span><span class="n">cadence</span><span class="p">)</span>
+                <span class="c"># Run the detection statistic for the flare model</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">Bayes</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">)</span>
+                <span class="n">B</span><span class="o">.</span><span class="n">bayes_factors</span><span class="p">()</span>                
+                <span class="n">C</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">marginalise_full</span><span class="p">()</span>
+                <span class="n">D</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">Bayes</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">P</span><span class="p">)</span>
+                <span class="n">D</span><span class="o">.</span><span class="n">bayes_factors</span><span class="p">()</span>
+                <span class="n">E</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">marginalise_full</span><span class="p">()</span>
+                <span class="n">F</span> <span class="o">=</span> <span class="n">C</span> <span class="o">+</span> <span class="n">E</span>
+                <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">lnBmargAmp</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folderpath</span><span class="o">+</span><span class="s">&#39;/f&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;.pickle&#39;</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="nb">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">,</span><span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="nb">file</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)))</span>
+
+        <span class="n">counts</span><span class="p">,</span> <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">data</span><span class="p">)],</span> <span class="n">bins</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">cdf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+
+        <span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span><span class="p">)</span>
+        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">cdf</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span><span class="o">+</span><span class="s">&#39;/cdf.pickle&#39;</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">))</span>
+        <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">bin_edges</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span><span class="o">+</span><span class="s">&#39;/binedge.pickle&#39;</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">))</span>
+
+        <span class="k">print</span> <span class="s">&quot;[Note] The thresholding files have been found, and the histogram has been constructed&quot;</span>
+</div>
+<div class="viewcode-block" id="Thresholder.calculate_threshold"><a class="viewcode-back" href="../../../stats.html#bayesflare.stats.thresholding.Thresholder.calculate_threshold">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function returns the lnB above which a value has a 99.9% confidence of being a flare</span>
+<span class="sd">        as opposed to guassian noise.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        quarter : int</span>
+<span class="sd">           The *Kepler* quarter from which the data is taken</span>
+<span class="sd">        cadence : string</span>
+<span class="sd">           The cadence of the data, can be either &#39;long&#39; or &#39;short&#39;.</span>
+<span class="sd">        confidence : float</span>
+<span class="sd">           The level of confidence where the threshold should be drawn. </span>
+<span class="sd">           Default is 0.999</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        threshold : float</span>
+<span class="sd">           the threshold ln(bayes factor) above which detections have ``confidence`` confidence of</span>
+<span class="sd">           being a flare.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">B</span>
+        <span class="n">confidence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span>
+        <span class="kn">import</span> <span class="nn">pickle</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span><span class="o">+</span><span class="s">&#39;/cdf.pickle&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_edges</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span><span class="o">+</span><span class="s">&#39;/binedge.pickle&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">))</span>
+            <span class="n">thresh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span> <span class="o">&gt;=</span> <span class="n">confidence</span> <span class="p">)</span>
+            <span class="k">print</span> <span class="s">&quot;[Note] Now analysing the generated random noise to find flare threshold.&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_edges</span><span class="p">[</span><span class="n">thresh</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+            <span class="c"># If the files containing the two histograms don&#39;t exist the must be created</span>
+            <span class="k">print</span> <span class="s">&quot;[Note] The files required to calculate the confidence levels were not found.&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">generate_threshold</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span><span class="o">+</span><span class="s">&#39;/cdf.pickle&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bin_edges</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thrfolder</span><span class="o">+</span><span class="s">&#39;/binedge.pickle&#39;</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">))</span>
+            <span class="n">thresh</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span> <span class="o">&gt;=</span> <span class="n">confidence</span> <span class="p">)</span>
+            <span class="k">print</span> <span class="s">&quot;[Note] Now analysing the generated random noise to find flare threshold.&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_edges</span><span class="p">[</span><span class="n">thresh</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="mi">0</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Thresholder.bayes_to_confidence"><a class="viewcode-back" href="../../../stats.html#bayesflare.stats.thresholding.Thresholder.bayes_to_confidence">[docs]</a>    <span class="k">def</span> <span class="nf">bayes_to_confidence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lnB</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function returns a percentage confidence when given a lnB value.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        quarter : int</span>
+<span class="sd">           The *Kepler* quarter from which the data is taken</span>
+<span class="sd">        cadence : string</span>
+<span class="sd">           The cadence of the data, can be either &#39;long&#39; or &#39;short&#39;.</span>
+<span class="sd">        lnB : float</span>
+<span class="sd">           The ln(bayes factor) to be converted into a percentage conidence.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        percentage : float</span>
+<span class="sd">           The percentage confidence corresponding to ``lnB``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">place</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_edges</span> <span class="o">&gt;=</span> <span class="n">lnB</span> <span class="p">)</span>
+        <span class="n">place</span> <span class="o">=</span> <span class="n">place</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">place</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c">#print place</span>
+            <span class="n">place</span> <span class="o">=</span> <span class="n">place</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdf</span><span class="p">[</span><span class="n">place</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdf</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div></div>
+</pre></div>
+
+          <footer>
+  
+
+  <hr/>
+
+  <p>
+      &copy; Copyright 2014, Matthew Pitkin, Daniel Williams.
+  </p>
+
+  <a href="https://www.github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="http://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+</body>
+</html>

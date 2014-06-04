@@ -1,0 +1,573 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bayesflare.data.data &mdash; BayesFlare 1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:'../../../',
+        VERSION:'1',
+        COLLAPSE_INDEX:false,
+        FILE_SUFFIX:'.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+    <link rel="top" title="BayesFlare 1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="../../../index.html" class="icon icon-home"> BayesFlare</a>
+        <form class="wy-form" action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search docs" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix">
+        
+        
+            <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../intro.html">A Brief Introduction to pyFlare</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../scripts.html">Pre-made Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../scripts.html#pitkin-williams-et-al">Pitkin, Williams, et. al.</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../data.html">Data Handling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../data.html#module-bayesflare.data.data">Data Loader</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../models.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models.html#module-bayesflare.models.flare">The Flare Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models.html#module-bayesflare.models.transit">The Transit Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../stats.html">Statistical Operations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../stats.html#module-bayesflare.stats.thresholding">Automatic Thresholder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../noise.html">Noise Estimation and Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../finder.html">Flare Indentification</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc.html">Miscellaneous Functions</a></li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top">
+        <i data-toggle="wy-nav-top" class="icon icon-reorder"></i>
+        <a href="/">BayesFlare</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <ul class="wy-breadcrumbs">
+  <li><a href="../../../index.html">Docs</a> &raquo;</li>
+  <li><a href="">bayesflare.data.data</a></li>
+  
+</ul>
+<hr/>
+
+          
+  <h1>Source code for bayesflare.data.data</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">bayesflare</span> <span class="kn">as</span> <span class="nn">pf</span>
+<span class="kn">import</span> <span class="nn">scipy.signal</span> <span class="kn">as</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">matplotlib.mlab</span> <span class="kn">as</span> <span class="nn">ml</span>
+<span class="c">#from pyflare import smooth_lightcurve</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">pl</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;Loader&quot;</span><span class="p">,</span> <span class="s">&quot;Lightcurve&quot;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Loader"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Loader">[docs]</a><span class="k">class</span> <span class="nc">Loader</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; An interface for loading Kepler data stored locally.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data_root -- string</span>
+<span class="sd">       A string containing the path to a folder containing the data from the Kepler mission.</span>
+<span class="sd">       This data should be stored in the following format:</span>
+<span class="sd">       ::</span>
+<span class="sd">          | data_root/</span>
+<span class="sd">          |          |/Q1_public</span>
+<span class="sd">          |          |/Q2_public</span>
+<span class="sd">          |          .</span>
+<span class="sd">          |          .</span>
+<span class="sd">   </span>
+<span class="sd">       This parameter is optional, and can also be loaded from the ``KPLR_ROOT`` environment</span>
+<span class="sd">       variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_root</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_root</span> <span class="o">=</span> <span class="n">data_root</span>
+        <span class="k">if</span> <span class="n">data_root</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_root</span> <span class="o">=</span> <span class="n">KPLR_ROOT</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&lt;BayesFlare Data Loader (data_root=</span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s">)&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_root</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__str__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__str__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Loader.find"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Loader.find">[docs]</a>    <span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kic</span><span class="p">,</span> <span class="n">short</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">quarters</span><span class="o">=</span><span class="s">&quot;1-9&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Finds all local files which correspond to a given star,</span>
+<span class="sd">        from all available data collection quarters, either from</span>
+<span class="sd">        short or long cadence data.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kic : int, str</span>
+<span class="sd">           The Kepler Input Catalogue ID for the star</span>
+<span class="sd">        short : bool, optional</span>
+<span class="sd">           A boolean flag which determines whether or not short cadence light curves should be returned.</span>
+<span class="sd">           Defaults to False.</span>
+<span class="sd">        quarters : str, optional</span>
+<span class="sd">           A quarter, or a range of quarters in the format &quot;first-last&quot;, for example</span>
+<span class="sd">        </span>
+<span class="sd">              &gt;&gt;&gt; Loader.find(757450, quarters=&quot;2-3&quot;)</span>
+<span class="sd">        </span>
+<span class="sd">           will retrieve all quarter 2 and 3 data for the star KIC757450.</span>
+<span class="sd">           By default, retrieves all quarters between 1 and 9.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">           A list containing the paths to every qualifying lightcurve.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        &gt;&gt;&gt; Loader.find(757450, short=True, quarters=&quot;1&quot;)</span>
+<span class="sd">        </span>
+<span class="sd">        Will return the short cadence light curves for KIC757450 in quarter 1.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">kic</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%09d</span><span class="s">&#39;</span><span class="o">%</span><span class="nb">int</span><span class="p">(</span><span class="n">kic</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">short</span><span class="o">==</span><span class="bp">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_root</span><span class="o">+</span><span class="s">&#39;/Q[&#39;</span><span class="o">+</span><span class="n">quarters</span><span class="o">+</span><span class="s">&#39;]_public/kplr&#39;</span><span class="o">+</span><span class="n">kic</span><span class="o">+</span><span class="s">&#39;*_llc.fits&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_root</span><span class="o">+</span><span class="s">&#39;/Q[&#39;</span><span class="o">+</span><span class="n">quarters</span><span class="o">+</span><span class="s">&#39;]_public/kplr&#39;</span><span class="o">+</span><span class="n">kic</span><span class="o">+</span><span class="s">&#39;*.fits&#39;</span><span class="p">))</span>
+
+</div></div>
+<div class="viewcode-block" id="Lightcurve"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve">[docs]</a><span class="k">class</span> <span class="nc">Lightcurve</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class designed to handle the day-to-day requirements for</span>
+<span class="sd">    Kepler lightcurves, including removing DC offsets, and</span>
+<span class="sd">    combining lightcurves.</span>
+
+<span class="sd">    Combining lightcurves is not especially well</span>
+<span class="sd">    implimented, and it&#39;s probably best to not rely on it.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    curves : array-like</span>
+<span class="sd">       An array of file names for light curves.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">id</span> <span class="o">=</span> <span class="mi">0</span>   <span class="c"># The KIC number of the star</span>
+
+    <span class="n">clc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="n">cts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="n">cle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+
+    <span class="n">ulc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>    <span class="c"># Place to store the unsmoothed curve.</span>
+
+    <span class="n">dc</span>  <span class="o">=</span> <span class="mi">0</span> <span class="c"># Stored DC offset.</span>
+
+    <span class="n">filterfit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+
+    <span class="n">quarter</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+
+    <span class="n">detrended</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">detrend_nbins</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">detrend_order</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">detrend_fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+
+    <span class="n">running_median_dt</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">running_median_fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="n">datagap</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">curves</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">detrend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">maxgap</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+        <span class="n">clc</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">clc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+        <span class="k">if</span> <span class="n">curves</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_data</span><span class="p">(</span><span class="n">curves</span><span class="p">,</span> <span class="n">detrend</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">maxgap</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&lt;pyFlare Lightcurve for KIC &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">+</span><span class="s">&quot;&gt;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__str__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__str__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Lightcurve.identity_string"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.identity_string">[docs]</a>    <span class="k">def</span> <span class="nf">identity_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a string which identifies the lightcurve.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">           An identifier of the light curve based on its length and cadence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&quot;lc_len_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">))</span><span class="o">+</span><span class="s">&quot;_cad_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cadence</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.dt"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.dt">[docs]</a>    <span class="k">def</span> <span class="nf">dt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the sample separation for the light curve.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">           The separation time for data in the light curve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.fs"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.fs">[docs]</a>    <span class="k">def</span> <span class="nf">fs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the sample frequency of the light curve.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">           The sample frequency of the light curve.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.psd"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.psd">[docs]</a>    <span class="k">def</span> <span class="nf">psd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        calculate the one-sided non-windowed power spectrum of the lightcurve.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sk : array-like</span>
+<span class="sd">           The Power spectral density of the light curve.</span>
+<span class="sd">        f  : array-like</span>
+<span class="sd">           An array of the frequencies.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">)</span>
+
+        <span class="c"># get the power spectrum of the lightcurve data</span>
+        <span class="n">sk</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">ml</span><span class="o">.</span><span class="n">psd</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">signal</span><span class="o">.</span><span class="n">boxcar</span><span class="p">(</span><span class="n">l</span><span class="p">),</span> <span class="n">noverlap</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">NFFT</span><span class="o">=</span><span class="n">l</span><span class="p">,</span> <span class="n">Fs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fs</span><span class="p">(),</span> <span class="n">sides</span><span class="o">=</span><span class="s">&#39;onesided&#39;</span><span class="p">)</span>
+
+        <span class="c"># return power spectral density and array of frequencies</span>
+        <span class="k">return</span> <span class="n">sk</span><span class="p">,</span> <span class="n">f</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.add_data"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.add_data">[docs]</a>    <span class="k">def</span> <span class="nf">add_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">curves</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">detrend</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">maxgap</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add light curve data to the object.</span>
+<span class="sd">        New data is added both to an array of light curves, and also to a combined light curve.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        curves : list of str</span>
+<span class="sd">           A list of file paths pointing to the light curve fits files.</span>
+
+<span class="sd">        detrend : bool, optional</span>
+<span class="sd">           A boolean flag which determines whether light curves should be detrended.</span>
+<span class="sd">           Defaults to False.</span>
+
+<span class="sd">        nbins : int, optional</span>
+<span class="sd">           The width of the detrending window in bins of the light curve.</span>
+<span class="sd">           Defaults to 101.</span>
+
+<span class="sd">        order : int, optional</span>
+<span class="sd">           The order of the detrending filter.</span>
+<span class="sd">           Defaults to 3.</span>
+
+<span class="sd">        maxgap : int, optional</span>
+<span class="sd">           The largest gap size allowed before the light curve is deemed to contain gaps.</span>
+<span class="sd">           Defaults to 1.</span>
+
+<span class="sd">        Exceptions</span>
+<span class="sd">        ----------</span>
+<span class="sd">        NameError</span>
+<span class="sd">           This needs to be replaced with an exception specific to the package!</span>
+<span class="sd">           Error is raised if there is an I/O error while accessing a light curve file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">curves</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">curve</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">curves</span><span class="p">[</span><span class="n">a</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">IOError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s">&quot;[Error] An IO error occured when trying to access&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">curves</span><span class="p">[</span><span class="n">a</span><span class="p">])</span> <span class="p">)</span>
+                <span class="n">mis_file</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s">&#39;ioerror-files.log&#39;</span><span class="p">,</span> <span class="s">&#39;a&#39;</span><span class="p">)</span>
+                <span class="n">mis_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">curves</span><span class="p">[</span><span class="n">a</span><span class="p">])</span><span class="o">+</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="n">mis_file</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">return</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">curve</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;KEPLERID&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">curve</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;KEPLERID&#39;</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NameError</span><span class="p">(</span><span class="s">&quot;Tried to add data from KIC&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">curve</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;KEPLERID&#39;</span><span class="p">])</span><span class="o">+</span><span class="s">&quot; to KIC&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">curve</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;OBSMODE&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;long cadence&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cadence</span> <span class="o">=</span> <span class="s">&#39;long&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cadence</span> <span class="o">=</span> <span class="s">&#39;short&#39;</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">quarter</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">quarter</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">curve</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s">&#39;QUARTER&#39;</span><span class="p">])</span>
+
+            <span class="c"># Assemble the new data into the class</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">,</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">curve</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;PDCSAP_FLUX&#39;</span><span class="p">]))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cts</span><span class="p">,</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">curve</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;TIME&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">24</span><span class="o">*</span><span class="mi">3600</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cle</span><span class="p">,</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">curve</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;PDCSAP_FLUX_ERR&#39;</span><span class="p">]))</span>
+
+            <span class="n">curve</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">datagap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gap_checker</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">,</span> <span class="n">maxgap</span><span class="o">=</span><span class="n">maxgap</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">interpolate</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dcoffset</span><span class="p">()</span>
+            <span class="c">#self.combine()</span>
+            <span class="k">if</span> <span class="n">detrend</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">detrend</span><span class="p">(</span><span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+            <span class="k">del</span> <span class="n">curve</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.dcoffset"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.dcoffset">[docs]</a>    <span class="k">def</span> <span class="nf">dcoffset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to remove a DC offset from a lightcurve by subtracting the median value of the</span>
+<span class="sd">        lightcurve from all values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dc</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dc</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.gap_checker"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.gap_checker">[docs]</a>    <span class="k">def</span> <span class="nf">gap_checker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">maxgap</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check for NaN gaps in the data greater than a given value</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        d : ndarray</span>
+<span class="sd">           The array to check for gaps in the data.</span>
+<span class="sd">        </span>
+<span class="sd">        maxgap : int, optional</span>
+<span class="sd">           The maximum allowed size of gaps in the data</span>
+<span class="sd">           Defaults to 1.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">           ``True`` if there is a gap of maxgap or greater exists in ``d``, otherwise ``False``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">maxgap</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">):</span>
+          <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">return</span> <span class="bp">False</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.nan_helper"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.nan_helper">[docs]</a>    <span class="k">def</span> <span class="nf">nan_helper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper to handle indices and logical indices of NaNs.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        y : ndarray</span>
+<span class="sd">           An array which may contain NaN values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nans : ndarray</span>
+<span class="sd">          An array containing the indices of NaNs</span>
+<span class="sd">        index : function</span>
+<span class="sd">          A function, to convert logical indices of NaNs to &#39;equivalent&#39; indices</span>
+<span class="sd">        </span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">        </span>
+<span class="sd">           &gt;&gt;&gt; # linear interpolation of NaNs</span>
+<span class="sd">           &gt;&gt;&gt; spam = np.ones(100)</span>
+<span class="sd">           &gt;&gt;&gt; spam[10] = np.nan</span>
+<span class="sd">           &gt;&gt;&gt; camelot = pf.Lightcurve(curves)</span>
+<span class="sd">           &gt;&gt;&gt; nans, x = camelot.nan_helper(spam)</span>
+<span class="sd">           &gt;&gt;&gt; spam[nans]= np.interp(x(nans), x(~nans), spam[~nans])</span>
+
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">z</span><span class="p">:</span> <span class="n">z</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.interpolate"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.interpolate">[docs]</a>    <span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A method for interpolating the lightcurves, to compensate for NAN values.</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+
+<span class="sd">           &gt;&gt;&gt; camelot = pf.Lightcurve(curves)</span>
+<span class="sd">           &gt;&gt;&gt; camelot.interpolate()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c">#for a in np.arange(len(self.lc)):</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clc</span>
+        <span class="n">nans</span><span class="p">,</span> <span class="n">za</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nan_helper</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="n">z</span><span class="p">[</span><span class="n">nans</span><span class="p">]</span><span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">za</span><span class="p">(</span><span class="n">nans</span><span class="p">),</span> <span class="n">za</span><span class="p">(</span><span class="o">~</span><span class="n">nans</span><span class="p">),</span> <span class="n">z</span><span class="p">[</span><span class="o">~</span><span class="n">nans</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float32&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">=</span> <span class="n">z</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.set_detrend"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.set_detrend">[docs]</a>    <span class="k">def</span> <span class="nf">set_detrend</span><span class="p">(</span><span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A method allowing the detrending parameters for the light curve to be changed.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nbins : int</span>
+<span class="sd">           The length of the detrending window, in bins.</span>
+
+<span class="sd">        order : int</span>
+<span class="sd">           The order of the detrending filter.</span>
+
+<span class="sd">        See also</span>
+<span class="sd">        --------</span>
+<span class="sd">        detrend</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detrend_length</span><span class="o">=</span><span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detrend_order</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.detrend"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.detrend">[docs]</a>    <span class="k">def</span> <span class="nf">detrend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A method to detrend the light curve using a Savitsky-Golay filter.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        nbins : int</span>
+<span class="sd">           The number of bins in the running detrend window</span>
+<span class="sd">        order : int</span>
+<span class="sd">           The polynomial order of the detrending fit.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detrend_nbins</span> <span class="o">=</span> <span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detrend_order</span> <span class="o">=</span> <span class="n">order</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detrended</span> <span class="o">=</span> <span class="bp">True</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ulc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clc</span>
+        <span class="n">ffit</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">savitzky_golay</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">-</span> <span class="n">ffit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detrend_fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ffit</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.running_median"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.running_median">[docs]</a>    <span class="k">def</span> <span class="nf">running_median</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A method to subtract a running median for smoothing the lightcurve</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dt : float</span>
+<span class="sd">           the time window (in seconds) for the running median</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ffit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_median_dt</span> <span class="o">=</span> <span class="n">dt</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">)):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cts</span> <span class="o">&lt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="n">dt</span><span class="o">/</span><span class="mf">2.</span><span class="p">))</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cts</span> <span class="o">&gt;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">dt</span><span class="o">/</span><span class="mf">2.</span><span class="p">))</span>
+            <span class="n">ffit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ffit</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">[</span><span class="n">v</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">running_median_fit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">ffit</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ulc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clc</span> <span class="o">-</span> <span class="n">ffit</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Lightcurve.plot"><a class="viewcode-back" href="../../../data.html#bayesflare.data.data.Lightcurve.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">)):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to produce a plot of the light curve.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        figsize : tuple</span>
+<span class="sd">           The size of the output plot.</span>
+
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">pl</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Lightcurve for KIC&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trace</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cts</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mf">3600.0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">clc</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">autofmt_xdate</span><span class="p">()</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;Time [days]&#39;</span><span class="p">)</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;Luminosity&#39;</span><span class="p">)</span>
+        <span class="n">pl</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div></div></div>
+
+          <footer>
+  
+
+  <hr/>
+
+  <p>
+      &copy; Copyright 2014, Matthew Pitkin, Daniel Williams.
+  </p>
+
+  <a href="https://www.github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="http://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+</body>
+</html>

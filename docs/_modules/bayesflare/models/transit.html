@@ -1,0 +1,460 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>bayesflare.models.transit &mdash; BayesFlare 1 documentation</title>
+  
+
+  
+  
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  
+  
+
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:'../../../',
+        VERSION:'1',
+        COLLAPSE_INDEX:false,
+        FILE_SUFFIX:'.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+    <link rel="top" title="BayesFlare 1 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  <script src="//cdnjs.cloudflare.com/ajax/libs/modernizr/2.6.2/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        <a href="../../../index.html" class="icon icon-home"> BayesFlare</a>
+        <form class="wy-form" action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search docs" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix">
+        
+        
+            <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../intro.html">A Brief Introduction to pyFlare</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../scripts.html">Pre-made Scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../scripts.html#pitkin-williams-et-al">Pitkin, Williams, et. al.</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../data.html">Data Handling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../data.html#module-bayesflare.data.data">Data Loader</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../models.html">Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../models.html#module-bayesflare.models.flare">The Flare Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../models.html#module-bayesflare.models.transit">The Transit Models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../stats.html">Statistical Operations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../stats.html#module-bayesflare.stats.thresholding">Automatic Thresholder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../noise.html">Noise Estimation and Simulation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../finder.html">Flare Indentification</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc.html">Miscellaneous Functions</a></li>
+</ul>
+
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top">
+        <i data-toggle="wy-nav-top" class="icon icon-reorder"></i>
+        <a href="/">BayesFlare</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <ul class="wy-breadcrumbs">
+  <li><a href="../../../index.html">Docs</a> &raquo;</li>
+  <li><a href="">bayesflare.models.transit</a></li>
+  
+</ul>
+<hr/>
+
+          
+  <h1>Source code for bayesflare.models.transit</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">flare</span> <span class="kn">import</span> <span class="n">ModelCurve</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">bayesflare</span> <span class="kn">as</span> <span class="nn">pf</span>
+
+<div class="viewcode-block" id="Transit"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit">[docs]</a><span class="k">class</span> <span class="nc">Transit</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A transit model with a half-Gaussian dip and rise and flat bottom profile.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    amp : float, optional</span>
+<span class="sd">       The amplitude of the flare. Defaults to 1.</span>
+<span class="sd">    ts : ndarray</span>
+<span class="sd">       A vector containing time stamps.</span>
+<span class="sd">    t0 : float, optional</span>
+<span class="sd">       The time of peak. Defaults to the centre of ``ts``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    f : ndarray</span>
+<span class="sd">       An array containing the transit model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">amp</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">ts</span>  <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">t0</span>  <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">f</span>   <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">sigmag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span><span class="o">*</span><span class="mi">3600</span> <span class="c"># standard deviation of Gaussian dip/rise profile</span>
+    <span class="n">tauf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span><span class="o">*</span><span class="mi">3600</span>   <span class="c"># halfwidth of flat bottom of profile</span>
+
+    <span class="n">maxduration</span> <span class="o">=</span> <span class="mi">12</span><span class="o">*</span><span class="mi">3600</span> <span class="c"># maximum duration of the transit - 12 hours is default</span>
+
+    <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">paramnames</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;t0&#39;</span><span class="p">,</span> <span class="s">&#39;sigmag&#39;</span><span class="p">,</span> <span class="s">&#39;tauf&#39;</span><span class="p">,</span> <span class="s">&#39;amp&#39;</span><span class="p">]</span>
+    <span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span><span class="n">sigmag</span><span class="p">,</span> <span class="n">tauf</span><span class="p">]</span>
+
+    <span class="n">priors</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">sigmag</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">tauf</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">amp</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">t0</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an transit model with a half-Gaussian dip and rise and a flat bottom</span>
+<span class="sd">        amp                        -- initial amplitude</span>
+<span class="sd">        ts                         -- a vector containing times</span>
+<span class="sd">        t0                         -- time of peak</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        f  --  an array containing the transit model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">t0</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">ts</span><span class="p">[</span><span class="n">floor</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">amp</span> <span class="o">=</span> <span class="n">amp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t0</span>  <span class="o">=</span> <span class="n">t0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts</span>  <span class="o">=</span> <span class="n">ts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters_refresh</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_priors</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&lt;pyFlare Transit model containing &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">)</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">))</span><span class="o">+</span><span class="s">&quot; variants&gt;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__str__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Transit.identity_string"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.identity_string">[docs]</a>    <span class="k">def</span> <span class="nf">identity_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a string which identifies the model.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">           A string identifying the model and its parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&quot;transit_tauf_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span><span class="o">+</span><span class="s">&quot;_sigmag_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">+</span><span class="s">&quot;_&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+</div>
+<div class="viewcode-block" id="Transit.identity_type"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.identity_type">[docs]</a>    <span class="k">def</span> <span class="nf">identity_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the type of model represented by the object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">           A string containing the type of the model the object represents.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s">&quot;transit&quot;</span>
+</div>
+<div class="viewcode-block" id="Transit.set_sigmag"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.set_sigmag">[docs]</a>    <span class="k">def</span> <span class="nf">set_sigmag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">number</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Allows the ``sigmag`` parameter of the model to be set.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        low : float</span>
+<span class="sd">           The lowest value of ``sigmag`` to be used.</span>
+<span class="sd">        high : float, optional</span>
+<span class="sd">           The highest value of ``sigmag`` to be used.</span>
+<span class="sd">        number : int, optional</span>
+<span class="sd">           The number of intervals to be created between the low and high values of ``sigmag``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">low</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">high</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">number</span><span class="o">==</span><span class="bp">None</span><span class="p">:</span>
+                <span class="n">number</span> <span class="o">=</span> <span class="n">floor</span><span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">)</span><span class="o">/</span><span class="mi">3600</span>
+            <span class="k">if</span> <span class="n">low</span> <span class="o">&lt;</span> <span class="n">high</span> <span class="ow">and</span> <span class="n">number</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">,</span> <span class="n">number</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters_refresh</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_priors</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Transit.set_tauf"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.set_tauf">[docs]</a>    <span class="k">def</span> <span class="nf">set_tauf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">number</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Allows the ``tauf`` parameter of the model to be set.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        low : float</span>
+<span class="sd">           The lowest value of ``tauf`` to be used.</span>
+<span class="sd">        high : float, optional</span>
+<span class="sd">           The highest value of ``tauf`` to be used.</span>
+<span class="sd">        number : int, optional</span>
+<span class="sd">           The number of intervals to be created between the low and high values of ``tauf``.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">low</span><span class="p">])</span> <span class="c"># default to low value</span>
+
+        <span class="k">if</span> <span class="n">high</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">number</span><span class="o">==</span><span class="bp">None</span><span class="p">:</span>
+                <span class="n">number</span> <span class="o">=</span> <span class="n">floor</span><span class="p">(</span><span class="n">high</span> <span class="o">-</span> <span class="n">low</span><span class="p">)</span><span class="o">/</span><span class="mi">3600</span>
+            <span class="k">if</span> <span class="n">low</span> <span class="o">&lt;</span> <span class="n">high</span> <span class="ow">and</span> <span class="n">number</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">,</span> <span class="n">number</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters_refresh</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_priors</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Transit.set_maxduration"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.set_maxduration">[docs]</a>    <span class="k">def</span> <span class="nf">set_maxduration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets the ``maxdur`` parameter.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        maxd : float</span>
+<span class="sd">           The maximum duration, in hours.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># enter maxd in hours, but store in seconds</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">=</span> <span class="n">maxd</span> <span class="o">*</span> <span class="mf">3600.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_priors</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Transit.update_priors"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.update_priors">[docs]</a>    <span class="k">def</span> <span class="nf">update_priors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigmagcutoff</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the priors to reflect the models.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># only use parameter space for which tauf + 2*sigmagcutoff*sigmag &lt; maxduration</span>
+        <span class="c"># sigmagcutoff is the number of sigmag&#39;s to use in the width of the transit within</span>
+        <span class="c"># the maxduration range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lnsigmagprior</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lntaufprior</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="n">maxtf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">mintf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">maxsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">minsg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmagcutoff</span> <span class="o">=</span> <span class="n">sigmagcutoff</span>
+
+        <span class="c"># get the sigmag and tauf values at which the above exclusion region intersects the</span>
+        <span class="c"># maximum and minimum tauf values</span>
+        <span class="n">sigmag1</span> <span class="o">=</span> <span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">-</span> <span class="n">mintf</span> <span class="p">)</span> <span class="o">/</span> <span class="p">(</span> <span class="mf">2.</span><span class="o">*</span><span class="n">sigmagcutoff</span> <span class="p">)</span>
+        <span class="n">sigmag2</span> <span class="o">=</span> <span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">-</span> <span class="n">maxtf</span> <span class="p">)</span> <span class="o">/</span> <span class="p">(</span> <span class="mf">2.</span><span class="o">*</span><span class="n">sigmagcutoff</span> <span class="p">)</span>
+        <span class="n">tauf1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">-</span> <span class="p">(</span> <span class="mf">2.</span><span class="o">*</span><span class="n">sigmagcutoff</span> <span class="p">)</span> <span class="o">*</span> <span class="n">minsg</span>
+        <span class="n">tauf2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">-</span> <span class="p">(</span> <span class="mf">2.</span><span class="o">*</span><span class="n">sigmagcutoff</span> <span class="p">)</span> <span class="o">*</span> <span class="n">maxsg</span>
+        <span class="n">dsigmag</span> <span class="o">=</span> <span class="n">maxsg</span> <span class="o">-</span> <span class="n">minsg</span>
+        <span class="n">dtauf</span> <span class="o">=</span> <span class="n">maxtf</span> <span class="o">-</span> <span class="n">mintf</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lntaufprior</span> <span class="o">=</span> <span class="mf">0.</span>
+
+        <span class="k">if</span> <span class="n">sigmag1</span> <span class="o">&lt;</span> <span class="n">minsg</span> <span class="ow">and</span> <span class="p">(</span> <span class="n">sigmag2</span> <span class="o">&gt;</span> <span class="n">minsg</span> <span class="ow">and</span> <span class="n">sigmag2</span> <span class="o">&lt;=</span> <span class="n">maxsg</span> <span class="p">):</span>
+            <span class="c"># prior just covers a triangle</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lnsigmagprior</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="p">(</span><span class="n">sigmag2</span> <span class="o">-</span> <span class="n">minsg</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">tauf1</span> <span class="o">-</span> <span class="n">mintf</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span> <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span> <span class="n">sigmag1</span> <span class="o">&gt;</span> <span class="n">minsg</span> <span class="ow">and</span> <span class="n">sigmag1</span> <span class="o">&lt;=</span> <span class="n">maxsg</span> <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span> <span class="n">sigmag2</span> <span class="o">&gt;</span> <span class="n">minsg</span> <span class="ow">and</span> <span class="n">sigmag2</span> <span class="o">&lt;=</span> <span class="n">maxsg</span> <span class="p">):</span>
+            <span class="c"># prior covers a trapezium</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lnsigmagprior</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="p">(</span><span class="n">dtauf</span><span class="o">/</span><span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigmag2</span> <span class="o">+</span> <span class="n">sigmag1</span> <span class="o">-</span> <span class="mf">2.</span><span class="o">*</span><span class="n">minsg</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span> <span class="n">tauf1</span> <span class="o">&gt;</span> <span class="n">mintf</span> <span class="ow">and</span> <span class="n">tauf1</span> <span class="o">&lt;</span> <span class="n">maxtf</span> <span class="p">)</span> <span class="ow">and</span> <span class="p">(</span> <span class="n">tauf2</span> <span class="o">&gt;</span> <span class="n">mintf</span> <span class="ow">and</span> <span class="n">tauf2</span> <span class="o">&lt;</span> <span class="n">maxtf</span> <span class="p">):</span>
+            <span class="c"># prior covers a trapezium</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lnsigmagprior</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="p">(</span><span class="n">dsigmag</span><span class="o">/</span><span class="mf">2.</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">tauf2</span> <span class="o">+</span> <span class="n">tauf1</span> <span class="o">-</span> <span class="mf">2.</span><span class="o">*</span><span class="n">mintf</span><span class="p">)</span> <span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span> <span class="n">sigmag1</span> <span class="o">&gt;</span> <span class="n">minsg</span> <span class="ow">and</span> <span class="n">sigmag1</span> <span class="o">&lt;=</span> <span class="n">maxsg</span> <span class="p">)</span> <span class="ow">and</span> <span class="n">sigmag2</span> <span class="o">&gt;</span> <span class="n">maxsg</span><span class="p">:</span>
+            <span class="c"># prior covers a Pentagon</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lnsigmagprior</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span> <span class="n">dtauf</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigmag1</span> <span class="o">-</span> <span class="n">minsg</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span> <span class="n">maxsg</span> <span class="o">-</span> <span class="n">sigmag1</span> <span class="p">)</span> <span class="o">*</span>
+              <span class="p">(</span> <span class="n">dtauf</span> <span class="o">+</span> <span class="p">(</span><span class="n">tauf2</span> <span class="o">-</span> <span class="n">mintf</span><span class="p">)</span> <span class="p">)</span> <span class="o">/</span> <span class="mf">2.</span> <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lnsigmagprior</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lntaufprior</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">priors</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lnsigmagprior</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lntaufprior</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Transit.parameters_refresh"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.parameters_refresh">[docs]</a>    <span class="k">def</span> <span class="nf">parameters_refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Refreshes the object to reflect new parameters set by ``set_taus_exp`` and ``set_taus_gauss``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">)):</span>
+               <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="n">j</span><span class="p">]]</span>
+</div>
+<div class="viewcode-block" id="Transit.model"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.model">[docs]</a>    <span class="k">def</span> <span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">amp</span><span class="p">,</span> <span class="n">sigmag</span><span class="p">,</span> <span class="n">tauf</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Private method to generate the impulse time series.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># the transit model for given parameters</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">amp</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ts</span><span class="p">))</span>
+        <span class="c">#f[ts &lt; t0] = -1*amp*np.exp(-(ts[ts &lt; t0] - (t0))**2/(2*float(sigmag)**2));</span>
+        <span class="k">if</span> <span class="n">sigmag</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">[</span><span class="n">ts</span> <span class="o">&lt;</span> <span class="n">t0</span><span class="o">-</span><span class="n">tauf</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">amp</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">ts</span><span class="p">[</span><span class="n">ts</span> <span class="o">&lt;</span> <span class="n">t0</span><span class="o">-</span><span class="n">tauf</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">t0</span><span class="o">-</span><span class="n">tauf</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="n">sigmag</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+            <span class="n">f</span><span class="p">[</span><span class="n">ts</span> <span class="o">&gt;</span> <span class="n">t0</span><span class="o">+</span><span class="n">tauf</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="o">*</span><span class="n">amp</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">ts</span><span class="p">[</span><span class="n">ts</span> <span class="o">&gt;</span> <span class="n">t0</span><span class="o">+</span><span class="n">tauf</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">t0</span><span class="o">+</span><span class="n">tauf</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="nb">float</span><span class="p">(</span><span class="n">sigmag</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span><span class="p">[</span><span class="n">ts</span> <span class="o">&lt;</span> <span class="n">t0</span><span class="o">-</span><span class="n">tauf</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">f</span><span class="p">[</span><span class="n">ts</span> <span class="o">&gt;</span> <span class="n">t0</span><span class="o">+</span><span class="n">tauf</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">f</span>
+</div>
+<div class="viewcode-block" id="Transit.modeldict"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.modeldict">[docs]</a>    <span class="k">def</span> <span class="nf">modeldict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pdict</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A method to generate a model given a time vector and a dictionary</span>
+<span class="sd">        of model parameters.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pdict : dictionary of parameters</span>
+<span class="sd">           A dictionary containing the parameters of the desired model output.</span>
+<span class="sd">           The valid names for the parameters are contained within ``transit.paramnames``</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c"># check dictionary is valid</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">paramnames</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">pdict</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&quot;Input dictionary does not contain the </span><span class="si">%s</span><span class="s"> parameter&quot;</span>
+                <span class="k">return</span> <span class="bp">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">pdict</span><span class="p">[</span><span class="s">&#39;amp&#39;</span><span class="p">],</span> <span class="n">pdict</span><span class="p">[</span><span class="s">&#39;sigmag&#39;</span><span class="p">],</span> <span class="n">pdict</span><span class="p">[</span><span class="s">&#39;tauf&#39;</span><span class="p">],</span> <span class="n">pdict</span><span class="p">[</span><span class="s">&#39;t0&#39;</span><span class="p">],</span> <span class="n">ts</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Transit.filter_model"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.filter_model">[docs]</a>    <span class="k">def</span> <span class="nf">filter_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use the Savitzky-Golay smoothing to high-pass filter the model m:</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        m : ndarray</span>
+<span class="sd">           An array containing the model.</span>
+<span class="sd">        nbins : int, optional</span>
+<span class="sd">           An odd integer width (in bins) for the filtering.</span>
+<span class="sd">        order : int, optional</span>
+<span class="sd">           The polynomial order for the filtering.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="n">pf</span><span class="o">.</span><span class="n">savitzky_golay</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Transit.output_model"><a class="viewcode-back" href="../../../models.html#bayesflare.models.transit.Transit.output_model">[docs]</a>    <span class="k">def</span> <span class="nf">output_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ts</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A private class to return a model from the object. Should be used with the ``__call__`` process.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i,j : int</span>
+<span class="sd">           The locations in the ``sigmag`` and ``tauf`` arrays.</span>
+<span class="sd">        ts : ndarray, optional</span>
+<span class="sd">           The time axis to generate the model on.</span>
+<span class="sd">           Defaults to the normal object&#39;s normal time axis.</span>
+<span class="sd">        filt : bool, optional</span>
+<span class="sd">           Boolean flag to enable filtering on the output model.</span>
+<span class="sd">           Defaults to False.</span>
+<span class="sd">        nbins : int, optional</span>
+<span class="sd">           The width, in bins, of the filter. Defaults to 101.</span>
+<span class="sd">        order : int, optional</span>
+<span class="sd">           The order of the filter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ts</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span>
+
+        <span class="c"># check model is within prior ranges otherwise return None</span>
+        <span class="n">sigmag1</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span> <span class="mf">2.</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmagcutoff</span> <span class="p">)</span>
+        <span class="n">sigmag2</span> <span class="o">=</span> <span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">)</span> <span class="o">/</span> <span class="p">(</span> <span class="mf">2.</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmagcutoff</span> <span class="p">)</span>
+        <span class="n">tauftop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxduration</span> <span class="o">-</span> <span class="p">(</span> <span class="mf">2.</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">sigmagcutoff</span> <span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">sigmag1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">sigmag2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">tauftop</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">amp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmag</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">tauf</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">t0</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filt</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_model</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+        <span class="n">m</span> <span class="o">=</span> <span class="n">ModelCurve</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">m</span>
+</div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">ts</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">filt</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nbins</span><span class="o">=</span><span class="mi">101</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ts</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span>
+
+        <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_model</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">filt</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span></div>
+</pre></div>
+
+          <footer>
+  
+
+  <hr/>
+
+  <p>
+      &copy; Copyright 2014, Matthew Pitkin, Daniel Williams.
+  </p>
+
+  <a href="https://www.github.com/snide/sphinx_rtd_theme">Sphinx theme</a> provided by <a href="http://readthedocs.org">Read the Docs</a>
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+</body>
+</html>
